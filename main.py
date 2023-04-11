@@ -40,6 +40,7 @@ setorCluster = vetorHex[13]
 setoresReservados =  juntar2Bytes(vetorHex[14], vetorHex[15])
 directoryEntries = juntar2Bytes(vetorHex[17], vetorHex[18])
 setoresFat = juntar2Bytes(vetorHex[22], vetorHex[23])
+inicioFat = (int(setoresReservados, 16))*int(directoryEntries, 16)*(int(setoresFat, 16)+1)
 
 ######### FINAL
 print("\n","----------------- LEITOR FAT 16 ----------------------", "\n")
@@ -59,3 +60,4 @@ print("Nº de entradas diretorio raiz: ", int(directoryEntries, 16))
 #BR 22
 print("Nº setores por fat: ", int(setoresFat, 16))
 
+print(inicioFat)
