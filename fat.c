@@ -74,13 +74,13 @@ int statusCluster (int num1) {
 
 void retornaAtributo(int num1) {
 	if (num1 == 0x20){
-		printf("Arquivo\n");
+		printf("Arquivo");
 	}
 	if (num1 == 0x10){
-		printf("Diretorio\n");
+		printf("Diretorio");
 	}
 	if (num1 == 0x0F){
-		printf("LFN\n");
+		printf("Lfn");
 	}
 }
 
@@ -92,7 +92,7 @@ int main()
 	
 	rootDicionarioExemplo rd; //
 
-    fp= fopen("fat161s.img", "rb");
+    fp= fopen("fat164s.img", "rb");
     fseek(fp, 0, SEEK_SET);
     fread(&boot_record, sizeof(fat_BS_t),1, fp);
 	
@@ -142,7 +142,7 @@ int main()
 	int inicialRd11 =11;
 	int inicialRd0 =0;
 
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < entradasTotais; i++)
 	{
 		//le primeiro elemento 
 		short rd1;
@@ -151,12 +151,21 @@ int main()
 
 		if(arqExiste(rd1)==1) { //CHECK SE O ARQUIVO EXISTE E NAO FOI EXCLUIDO
 			
-			fseek(fp, (root_dir_start_byte), SEEK_SET);
+			fseek(fp, (root_dir_start_byte+inicialRd11), SEEK_SET);
+    		fread(&rd.atributo, sizeof(unsigned short), 1, fp);
+			retornaAtributo(rd.atributo);
+			printf(": ");
+
+			fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
 			fread(&rd.nomeEntrada, sizeof(char), 8, fp);
-			printf("%s\n", rd.nomeEntrada);
-			
+
+			printf("%s", rd.nomeEntrada);
+			printf("\n");
 		}
+
 		inicialRd0 += 32;
+		inicialRd11 += 32;
+
 	}
 
 
