@@ -1,26 +1,27 @@
-#include <stdio.h>
-#include <stdlib.h>
+		if (retornaAtributo(rd1) == 1) {
+			printf("\nArquivo: ");
+		}
+		if (retornaAtributo(rd1) == 2) {
+			printf("\nDiretorio: ");
+		}
+		if (retornaAtributo(rd1) == 3) {
+			printf("\nLfn: ");
+		}
 
-int arqExiste (int num1) {
-	
-	if ((num1 == 0x00) || (num1 == 0xe5)) {
+				//VERIFICA SE NAO TA EXCLUIDO
+		if ((arqExiste(rd1))==1)
+		{
 
-		printf("passou 1\n");
-		return 0;
-	}	else {
 
-		printf("passou 2\n");
-		return 1; 
-	}
-}
+			
+			if (retornaAtributo(rd11) == 1) {
+				printf("\nArquivo: ");
+			}
+			if (retornaAtributo(rd11) == 2) {
+				printf("\nDiretorio: ");
+			}
+			if (retornaAtributo(rd11) == 3) {
+				printf("\nLfn: ");
+			}
 
-int main(){
-
-	int rd1 = 0xe5;
-	printf("%x\n", rd1);
-	int boolArq = arqExiste(rd1);
-	printf("%d\n", boolArq);
-	if(boolArq==1) {
-		printf("Existe\n");
-	}
-}
+		}		

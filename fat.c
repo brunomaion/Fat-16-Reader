@@ -35,11 +35,11 @@ typedef struct rootDicionarioExemplo {
     short reservado2; // 20 0X14
     short horaUltimaGravacao; // 22 0X16
     short dataUltimaGravacao; // 24 0X18
-    short enderecoClusterInicial; // 26 0X1A
+    unsigned short enderecoClusterInicial; // 26 0X1A
     int dimensaoBytes; // 28 0X1C
 }__attribute__((packed)) rootDicionarioExemplo;;
 
-int arqExiste (int num1) {
+int arqExiste (short num1) {
 	
 	if ((num1 == 0x00) || (num1 == 0xe5)) {
 		return 0;
@@ -72,17 +72,18 @@ int statusCluster (int num1) {
 
 }
 
-void retornaAtributo(int num1) {
+short retornaAtributo(short num1) {
 	if (num1 == 0x20){
-		printf("Arquivo");
+		return 1;
 	}
 	if (num1 == 0x10){
-		printf("Diretorio");
+		return 2;
 	}
 	if (num1 == 0x0F){
-		printf("Lfn");
+		return 3;
 	}
 }
+
 
 int main()
 {
@@ -92,7 +93,8 @@ int main()
 	
 	rootDicionarioExemplo rd; //
 
-    fp= fopen("fat164s.img", "rb");
+    fp= fopen("fat161s.img", "rb");
+
     fseek(fp, 0, SEEK_SET);
     fread(&boot_record, sizeof(fat_BS_t),1, fp);
 	
@@ -139,60 +141,116 @@ int main()
 	int data_start_sector = root_dir_start_sector + root_dir_size_sectors;
 	int data_start_byte = data_start_sector * boot_record.bytes_per_sector; //SETOR INICIAL  DATA * 
 
-	int inicialRd11 =11;
-	int inicialRd0 =0;
 
-	for (int i = 0; i < entradasTotais; i++)
-	{
-		//le primeiro elemento 
-		short rd1;
-		fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
-    	fread(&rd1, sizeof(char), 1, fp);
-
-		if(arqExiste(rd1)==1) { //CHECK SE O ARQUIVO EXISTE E NAO FOI EXCLUIDO
-			
-			fseek(fp, (root_dir_start_byte+inicialRd11), SEEK_SET);
-    		fread(&rd.atributo, sizeof(unsigned short), 1, fp);
-			retornaAtributo(rd.atributo);
-			printf(": ");
-
-			fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
-			fread(&rd.nomeEntrada, sizeof(char), 8, fp);
-
-			printf("%s", rd.nomeEntrada);
-			printf("\n");
-		}
-
-		inicialRd0 += 32;
-		inicialRd11 += 32;
-
-	}
-
-
-	for (int i = 0; i < entradasTotais; i++)
-	{
-		
-
-		
-		
-		
-		
-		//
-		/*
-		fseek(fp, (root_dir_start_byte), SEEK_SET);
-    	fread(&rd.nomeEntrada, sizeof(char), 8, fp);
-		printf("%s\n", rd.nomeEntrada);
-		// 
-
-		//VERIFICAR ATRIBUTOS
-		fseek(fp, (root_dir_start_byte+inicialRd11), SEEK_SET);
-    	fread(&rd.atributo, sizeof(unsigned short), 1, fp);
-		retornaAtributo(rd.atributo);
-		inicialRd11 += 32;
-		//
-		*/
-	}
+	int inicioRoot = 0;
+	int inicioAtributo=11;
+	int inicioCluster=26;
 	
+	unsigned char rd1=0;
+	unsigned char rd11=0;
+	unsigned char rd27=0;
+
+
+	for (int i = 0; i < entradasTotais; i++)
+	{
+
+
+		
+		fseek(fp, root_dir_start_byte+inicioRoot, SEEK_SET);
+    	fread(&rd1, sizeof(unsigned char), 1, fp);
+
+
+
+
+		//printf("rd1: %x\n",rd1);
+
+	
+		//VERIFICA SE NAO TA EXCLUIDO
+		if (arqExiste(rd1)==1){
+			//printf("arqExiste\n");
+
+			fseek(fp, root_dir_start_byte+inicioAtributo, SEEK_SET);
+    		fread(&rd11, sizeof(unsigned char), 1, fp);
+			
+			fseek(fp, root_dir_start_byte+inicioAtributo, SEEK_SET);
+    		fread(&rd11, sizeof(unsigned char), 1, fp);
+
+			fseek(fp, root_dir_start_byte+inicioRoot, SEEK_SET);
+			fread(&rd.nomeEntrada, sizeof(char), 8, fp);			
+
+			fseek(fp, root_dir_start_byte+inicioRoot+8, SEEK_SET);
+			fread(&rd.extensaoEntrada, sizeof(char), 3, fp);			
+
+
+			//printf("%x\n", rd11);
+			if (retornaAtributo(rd11) == 1) {
+				
+				printf("\nARQUIVO:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+				
+				printf(".");
+				
+				for( int j=0; j<3; j++){
+					if(rd.extensaoEntrada[j] !=0x20){
+						printf("%c",rd.extensaoEntrada[j]);
+					}	
+				}	
+
+				fseek(fp, root_dir_start_byte+inicioCluster, SEEK_SET);
+				fread(&rd.enderecoClusterInicial, sizeof(unsigned short), 2, fp);
+
+				int first_sector_of_cluster = ((rd.enderecoClusterInicial - 2) * boot_record.sectors_per_cluster) + data_start_sector;
+				int first_byte_of_cluster  = first_sector_of_cluster * boot_record.bytes_per_sector;
+				
+
+				
+
+				printf("  \n  | \n   ---- CLUSTER INICIAL: %hx -- PRIMEIRO SETOR: %d -- BYTE INICIAL %d", 
+				rd.enderecoClusterInicial, first_sector_of_cluster, first_byte_of_cluster);	
+
+				
+				
+				
+				printf("  \n  | \n   ---- CONTEUDO: ");
+
+
+
+
+			}
+			if (retornaAtributo(rd11) == 2) {
+				printf("\nDIRETORIO:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+				
+			}
+			if (retornaAtributo(rd11) == 3) {
+				printf("\nLFN:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+			}
+
+
+
+
+		}
+		
+		
+		inicioAtributo += 32;
+		inicioRoot +=32;
+		inicioCluster +=32;
+	}
+
+	printf("\n");
 
 	// 
 	/*
