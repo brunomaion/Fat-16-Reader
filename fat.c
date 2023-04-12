@@ -23,11 +23,72 @@ typedef struct fat_BS
  
 }__attribute__((packed)) fat_BS_t;
 
+typedef struct rootDicionarioExemplo {
+    char nomeEntrada[8]; //0 0x00
+    char extensaoEntrada[3]; //8 0x08
+    char atributo; // 11 0x0B
+    char reservado1; // 12 0x0C
+    char criacaoMilissegundos; // 13 0X0D
+    short horaCriacao; // 14 0X0E
+    short dataCriacao; // 16 0X10
+    short dataUltimoAcesso; // 18 0X12
+    short reservado2; // 20 0X14
+    short horaUltimaGravacao; // 22 0X16
+    short dataUltimaGravacao; // 24 0X18
+    short enderecoClusterInicial; // 26 0X1A
+    int dimensaoBytes; // 28 0X1C
+}__attribute__((packed)) rootDicionarioExemplo;;
+
+unsigned char arqExiste (unsigned char num1) {
+	
+	if (num1 = (0x00 || 0xE5)) {
+		return 0;
+	}	
+	return 1; 
+}
+
+int statusCluster (int num1) {
+
+	if (num1 = 0x0000) { //0x0000 	Cluster livre
+		return 1;
+	}
+	if (num1 = (0x001 || 0x002 )) { //0x001 e 0x002 	Valores não utilizados e não permitidos
+		return 2;
+	}
+	if (num1 = 0xFFF7) { //0xFFF7 	Cluster danificado
+		return 3;
+	}
+	if ((num1 >= 0x0003) && (num1 <= 0xFFEF)) { //0x0003 a 0xFFEF 	O cluster faz parte de um ficheiro; o valor é o endereço do cluster seguinte
+		return 4;
+	}
+	if ((num1 >= 0xFFF0) && (num1 <= 0xFFF6)) { //0xFFF0 a 0xFFF6 	Cluster reservado
+		return 5;
+	}
+	if ((num1 >= 0xFFF8) && (num1 <= 0xFFFF)) { //0xFFF8 a 0xFFFF 	Último cluster de um ficheiro
+		return 6;
+	}
+
+}
+
+void retornaAtributo(int num1) {
+	if (num1 == 0x20){
+		printf("Arquivo\n");
+	}
+	if (num1 == 0x10){
+		printf("Diretorio\n");
+	}
+	if (num1 == 0x0F){
+		printf("LFN\n");
+	}
+}
+
 int main()
 {
 
     FILE *fp;
     fat_BS_t  boot_record; //declaração
+	
+	rootDicionarioExemplo rd; //
 
     fp= fopen("fat161s.img", "rb");
     fseek(fp, 0, SEEK_SET);
@@ -57,6 +118,7 @@ int main()
     fread(&boot_record.sectors_per_track, sizeof(unsigned short), 1, fp);
 
 	//FATs
+	int fat_sizeByte = boot_record.table_size_16 * boot_record.root_entry_count;
 	int fat1_start_sector = boot_record.reserved_sector_count;
 	int fat1_start_byte = fat1_start_sector * boot_record.bytes_per_sector;
 	int fat2_start_sector = boot_record.reserved_sector_count + boot_record.table_size_16;
@@ -65,16 +127,36 @@ int main()
 	//ROOT DIR
 	int root_dir_start_sector = boot_record.reserved_sector_count + boot_record.table_size_16 * boot_record.table_count;
 	int root_dir_start_byte = root_dir_start_sector * boot_record.bytes_per_sector;
-
 	int root_dir_size_bytes = boot_record.root_entry_count * 32; // cada entrada no diretório raiz tem tamanho fixo de 32 bytes
 	int root_dir_size_sectors = (root_dir_size_bytes + boot_record.bytes_per_sector - 1) / boot_record.bytes_per_sector; // arredondamento para cima
 
+	int entradasTotais = root_dir_size_bytes/32; // !! DUVIDA !! Qual tamanho do ROOT DIR MESMO, esta certo? Pq nao acho a DATA correta
+
+
 	//DATA
-	int data_sector_offset = boot_record.reserved_sector_count + (boot_record.table_count * boot_record.table_size_16);
 	int data_start_sector = root_dir_start_sector + root_dir_size_sectors;
-	int data_start_byte = data_start_sector * boot_record.bytes_per_sector;
+	int data_start_byte = data_start_sector * boot_record.bytes_per_sector; //SETOR INICIAL  DATA * 
 
+	int inicial=11;
 
+	for (int i = 0; i < entradasTotais; i++)
+	{
+		/*
+		fseek(fp, (root_dir_start_byte), SEEK_SET);
+    	fread(&rd.nomeEntrada, sizeof(char), 1, fp);
+		printf("%s\n", rd.nomeEntrada);
+		*/
+
+		//VERIFICAR ATRIBUTOS
+		fseek(fp, (root_dir_start_byte+inicial), SEEK_SET);
+    	fread(&rd.atributo, sizeof(unsigned short), 1, fp);
+		retornaAtributo(rd.atributo);
+		inicial += 32;
+		
+	}
+	
+
+	// /*
 	printf("Infos BOOR RECORD:\n");
 	printf(" Bytes por setor: %hd \n", boot_record.bytes_per_sector);
     printf(" Setores por cluster: %x \n", boot_record.sectors_per_cluster);
@@ -85,23 +167,27 @@ int main()
 	printf(" Numero setores per track: %d \n", boot_record.sectors_per_track); //BR 24 0x18
 
 	printf("\nInfos FAT:\n");
+	printf(" Tamanho: %d \n", fat_sizeByte); //tamanho da fat
 	printf(" Fat1, Setor: %d \n", fat1_start_sector); //SETOR INICIA FAT 2
 	printf(" Fat1, Byte: %d \n", fat1_start_byte); //BYTE INICIA FAT 2
 	printf(" Fat2, Setor: %d \n", fat2_start_sector); //SETOR INICIA FAT 2
 	printf(" Fat2, Byte: %d \n", fat2_start_byte); //BYTE INICIA FAT 2
 
 
-	printf("\nInfos ROOT DIR:\n");
-	printf(" Root Dir, Setor: %d \n", root_dir_start_sector); //SETOR INICIA Root Dir 
+	printf("\nInfos ROOT DIR:\n"); 
+	printf(" Root Dir, Setor inicial: %d \n", root_dir_start_sector); //BYTE INICIA Root Dir 
 	printf(" Root Dir, Byte: %d \n", root_dir_start_byte); //BYTE INICIA Root Dir 
-	printf(" Root Dir, Tamanho Bytes: %d \n", root_dir_size_bytes); //Tamanho Root Dir 
-	printf(" Root Dir, Tamanho Setor: %d \n", root_dir_size_sectors); //Tamanho Root Dir 
+	printf(" Root Dir, Tamanho Bytes: %d \n", root_dir_size_bytes); //Tamanho Root Dir bytes
+	printf(" Root Dir, Tamanho Setor: %d \n", root_dir_size_sectors); //Tamanho Root Dir setores
+	printf(" Root Dir, Entradas totais: %d \n", entradasTotais); //Tamanho Root Dir setores        // !! DUVIDA !!
+
+
+
 
 	printf("\nInfos DATA:\n");
-	printf(" Data, Offset: %d \n", data_sector_offset); //Tamanho Root Dir 
 	printf(" Data, Setor: %d \n", data_start_sector); //SETOR INICIA Root Dir 
 	printf(" Data, Byte: %d \n", data_start_byte); //BYTE INICIA Root Dir 
-
+	// */
 
 	//printf("\n");
     return 0;
