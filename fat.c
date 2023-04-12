@@ -39,13 +39,15 @@ typedef struct rootDicionarioExemplo {
     int dimensaoBytes; // 28 0X1C
 }__attribute__((packed)) rootDicionarioExemplo;;
 
-unsigned char arqExiste (unsigned char num1) {
+int arqExiste (int num1) {
 	
-	if (num1 = (0x00 || 0xE5)) {
+	if ((num1 == 0x00) || (num1 == 0xe5)) {
 		return 0;
-	}	
-	return 1; 
+	}	else {
+		return 1; 
+	}
 }
+
 
 int statusCluster (int num1) {
 
@@ -137,26 +139,54 @@ int main()
 	int data_start_sector = root_dir_start_sector + root_dir_size_sectors;
 	int data_start_byte = data_start_sector * boot_record.bytes_per_sector; //SETOR INICIAL  DATA * 
 
-	int inicial=11;
+	int inicialRd11 =11;
+	int inicialRd0 =0;
+
+	for (int i = 0; i < 10; i++)
+	{
+		//le primeiro elemento 
+		short rd1;
+		fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
+    	fread(&rd1, sizeof(char), 1, fp);
+
+		if(arqExiste(rd1)==1) { //CHECK SE O ARQUIVO EXISTE E NAO FOI EXCLUIDO
+			
+			fseek(fp, (root_dir_start_byte), SEEK_SET);
+			fread(&rd.nomeEntrada, sizeof(char), 8, fp);
+			printf("%s\n", rd.nomeEntrada);
+			
+		}
+		inicialRd0 += 32;
+	}
+
 
 	for (int i = 0; i < entradasTotais; i++)
 	{
+		
+
+		
+		
+		
+		
+		//
 		/*
 		fseek(fp, (root_dir_start_byte), SEEK_SET);
-    	fread(&rd.nomeEntrada, sizeof(char), 1, fp);
+    	fread(&rd.nomeEntrada, sizeof(char), 8, fp);
 		printf("%s\n", rd.nomeEntrada);
-		*/
+		// 
 
 		//VERIFICAR ATRIBUTOS
-		fseek(fp, (root_dir_start_byte+inicial), SEEK_SET);
+		fseek(fp, (root_dir_start_byte+inicialRd11), SEEK_SET);
     	fread(&rd.atributo, sizeof(unsigned short), 1, fp);
 		retornaAtributo(rd.atributo);
-		inicial += 32;
-		
+		inicialRd11 += 32;
+		//
+		*/
 	}
 	
 
-	// /*
+	// 
+	/*
 	printf("Infos BOOR RECORD:\n");
 	printf(" Bytes por setor: %hd \n", boot_record.bytes_per_sector);
     printf(" Setores por cluster: %x \n", boot_record.sectors_per_cluster);
@@ -187,7 +217,8 @@ int main()
 	printf("\nInfos DATA:\n");
 	printf(" Data, Setor: %d \n", data_start_sector); //SETOR INICIA Root Dir 
 	printf(" Data, Byte: %d \n", data_start_byte); //BYTE INICIA Root Dir 
-	// */
+	//
+	 */
 
 	//printf("\n");
     return 0;
