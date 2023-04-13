@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
+/*ttps://wiki.osdev.org/FAT?simple=True
+AJUSTES A FAZE
+LER ARQUIVOS HIDDEN FILES OK?
+LER O TAMANHO DO ARQUIVO PARA NAO PEGAR LIXO
+*/
+
 typedef struct fat_BS
 {
 	unsigned char 		bootjmp[3];
@@ -73,7 +80,7 @@ int statusCluster (unsigned short num1) {
 }
 
 short retornaAtributo(short num1) {
-	if (num1 == 0x20){
+	if ((num1 == 0x20) || (num1 == 0x21) || (num1 == 0x22)){
 		return 1;
 	}
 	if (num1 == 0x10){
