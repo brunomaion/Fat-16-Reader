@@ -35,11 +35,11 @@ typedef struct rootDicionarioExemplo {
     short reservado2; // 20 0X14
     short horaUltimaGravacao; // 22 0X16
     short dataUltimaGravacao; // 24 0X18
-    short enderecoClusterInicial; // 26 0X1A
+    unsigned short enderecoClusterInicial; // 26 0X1A
     int dimensaoBytes; // 28 0X1C
 }__attribute__((packed)) rootDicionarioExemplo;;
 
-int arqExiste (int num1) {
+int arqExiste (short num1) {
 	
 	if ((num1 == 0x00) || (num1 == 0xe5)) {
 		return 0;
@@ -49,15 +49,15 @@ int arqExiste (int num1) {
 }
 
 
-int statusCluster (int num1) {
+int statusCluster (unsigned short num1) {
 
-	if (num1 = 0x0000) { //0x0000 	Cluster livre
+	if (num1 == 0x0000) { //0x0000 	Cluster livre
 		return 1;
 	}
-	if (num1 = (0x001 || 0x002 )) { //0x001 e 0x002 	Valores não utilizados e não permitidos
+	if (num1 == (0x001 || 0x002 )) { //0x001 e 0x002 	Valores não utilizados e não permitidos
 		return 2;
 	}
-	if (num1 = 0xFFF7) { //0xFFF7 	Cluster danificado
+	if (num1 == 0xFFF7) { //0xFFF7 	Cluster danificado
 		return 3;
 	}
 	if ((num1 >= 0x0003) && (num1 <= 0xFFEF)) { //0x0003 a 0xFFEF 	O cluster faz parte de um ficheiro; o valor é o endereço do cluster seguinte
@@ -66,30 +66,24 @@ int statusCluster (int num1) {
 	if ((num1 >= 0xFFF0) && (num1 <= 0xFFF6)) { //0xFFF0 a 0xFFF6 	Cluster reservado
 		return 5;
 	}
-	if ((num1 >= 0xFFF8) && (num1 <= 0xFFFF)) { //0xFFF8 a 0xFFFF 	Último cluster de um ficheiro
+	if ((num1 >= 0xfff8) && (num1 <= 0xffff)) { //0xFFF8 a 0xFFFF 	Último cluster de um ficheiro
 		return 6;
 	}
 
 }
 
-void retornaAtributo(int num1) {
-	if (num1 == 0x20){
-		printf("Arquivo");
-	}
-	if (num1 == 0x10){
-		printf("Diretorio");
-	}
-	if (num1 == 0x0F){
-		printf("Lfn");
-	}
-}
-
-int retornaTipoAtributo(int num1) {
+short retornaAtributo(short num1) {
 	if (num1 == 0x20){
 		return 1;
 	}
-
+	if (num1 == 0x10){
+		return 2;
+	}
+	if (num1 == 0x0F){
+		return 3;
+	}
 }
+
 
 int main()
 {
@@ -100,6 +94,7 @@ int main()
 	rootDicionarioExemplo rd; //
 
     fp= fopen("fat161s.img", "rb");
+
     fseek(fp, 0, SEEK_SET);
     fread(&boot_record, sizeof(fat_BS_t),1, fp);
 	
@@ -146,63 +141,194 @@ int main()
 	int data_start_sector = root_dir_start_sector + root_dir_size_sectors;
 	int data_start_byte = data_start_sector * boot_record.bytes_per_sector; //SETOR INICIAL  DATA * 
 
-	int inicialRd11 =11;
-	int inicialRd0 =0;
+
+	int inicioRoot = 0;
+	int inicioAtributo=11;
+	int inicioCluster=26;
+	
+	unsigned char rd1=0;
+	unsigned char rd11=0;
+	unsigned char rd27=0;
+
 
 	for (int i = 0; i < entradasTotais; i++)
 	{
-		//le primeiro elemento 
-		short rd1;
-		fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
-    	fread(&rd1, sizeof(char), 1, fp);
 
-		if(arqExiste(rd1)==1) { //CHECK SE O ARQUIVO EXISTE E NAO FOI EXCLUIDO
+
+		
+		fseek(fp, root_dir_start_byte+inicioRoot, SEEK_SET);
+    	fread(&rd1, sizeof(unsigned char), 1, fp);
+
+
+
+
+		//printf("rd1: %x\n",rd1);
+
+	
+		//VERIFICA SE NAO TA EXCLUIDO
+		if (arqExiste(rd1)==1){
+			//printf("arqExiste\n");
+
+			fseek(fp, root_dir_start_byte+inicioAtributo, SEEK_SET);
+    		fread(&rd11, sizeof(unsigned char), 1, fp);
 			
-			fseek(fp, (root_dir_start_byte+inicialRd11), SEEK_SET);
-    		fread(&rd.atributo, sizeof(unsigned short), 1, fp);
-			retornaAtributo(rd.atributo);
-			printf(": ");
+			fseek(fp, root_dir_start_byte+inicioAtributo, SEEK_SET);
+    		fread(&rd11, sizeof(unsigned char), 1, fp);
 
-			fseek(fp, (root_dir_start_byte+inicialRd0), SEEK_SET);
-			fread(&rd.nomeEntrada, sizeof(char), 8, fp);
+			fseek(fp, root_dir_start_byte+inicioRoot, SEEK_SET);
+			fread(&rd.nomeEntrada, sizeof(char), 8, fp);			
 
-			printf("%s", rd.nomeEntrada);
-		}
-
-		short rd2;
-		fseek(fp, (root_dir_start_byte+inicialRd0+11), SEEK_SET);
-    	fread(&rd2, sizeof(char), 1, fp);
+			fseek(fp, root_dir_start_byte+inicioRoot+8, SEEK_SET);
+			fread(&rd.extensaoEntrada, sizeof(char), 3, fp);			
 
 
-		//problema de memoria tive que colocar em dois
-		if(arqExiste(rd1)==1) { //CHECK SE O ARQUIVO EXISTE E NAO FOI EXCLUIDO
-			
-			fseek(fp, (root_dir_start_byte+inicialRd0+8), SEEK_SET);
-			fread(&rd.extensaoEntrada, sizeof(char), 3, fp);
-			printf("%s", rd.extensaoEntrada);
-			printf("\n");
+			//printf("%x\n", rd11);
+			if (retornaAtributo(rd11) == 1) {
+				
+				printf("\nARQUIVO:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+				
+				printf(".");
+				
+				for( int j=0; j<3; j++){
+					if(rd.extensaoEntrada[j] !=0x20){
+						printf("%c",rd.extensaoEntrada[j]);
+					}	
+				}	
 
-			if (retornaTipoAtributo(rd2) == 1) {
+				fseek(fp, root_dir_start_byte+inicioCluster, SEEK_SET);
+				fread(&rd.enderecoClusterInicial, sizeof(unsigned short), 2, fp);
 
-				printf("Conteudo: ");
-							fseek(fp, (root_dir_start_byte+inicialRd0+27), SEEK_SET);
-    		fread(&rd.enderecoClusterInicial, sizeof(char), 2, fp);
+				int first_sector_of_cluster = ((rd.enderecoClusterInicial - 2) * boot_record.sectors_per_cluster) + data_start_sector;
+				int first_byte_of_cluster  = first_sector_of_cluster * boot_record.bytes_per_sector;
+				
+
+				
+
+				printf("  \n  | \n   ---- CLUSTER INICIAL: %hx -- PRIMEIRO SETOR: %d -- BYTE INICIAL %d", 
+				rd.enderecoClusterInicial, first_sector_of_cluster, first_byte_of_cluster);	
+
+				int sizefile;
+
+				
+
+
+				//fseek(fp, root_dir_start_byte+inicioRoot+28, SEEK_SET);
+				//fread(&sizefile, sizeof(int), 4, fp);
+
+				//print("%d\n", sizefile);
+
+
+				
+				
+				printf("  \n  | \n   ---- CONTEUDO: ");
+
+				unsigned short clusterFat;
+				int flag = 0;
+				int cont =0;
+				unsigned short nextCluster=rd.enderecoClusterInicial;
+
+				while (flag==0) {
+					
+					
+					for (int l = 0; l < boot_record.bytes_per_sector; l++)
+					{
+						unsigned char caracter;
+
+						
+
+						fseek(fp, first_byte_of_cluster+l, SEEK_SET);
+						fread(&caracter, sizeof(unsigned char), 1, fp);
+						
+						
+						printf("%c", caracter);
+						
+
+					}
+					
+
+					
+
+					//LER O PROXIMO CLUSTER
+					fseek(fp, fat1_start_byte+(2*nextCluster)+1, SEEK_SET);
+					fread(&nextCluster, sizeof(unsigned short), 2, fp);
+					
+					//PRINTAR NEXT CLUSTER NO CASO 6
+					printf(" %x ", nextCluster);
+					
+
+					//Atualiza FisrtByte (no if?)
+					int next_sector_of_cluster = ((nextCluster - 2) * boot_record.sectors_per_cluster) + data_start_sector;
+					first_byte_of_cluster  = next_sector_of_cluster * boot_record.bytes_per_sector;
+					//CONTINUA OU PARA
+					if (statusCluster(nextCluster)==6) {
+						flag = 1;
+						printf("Entrou");
+					}
+
+					printf(" STATUS -- %d ---", statusCluster(nextCluster));
+
+					if (cont==2)
+					{
+						flag = 1;
+					}
+					
+					
+
+					cont++;
+
+				}
+
+				
+
+
+
+		
+				
+
+
+
 
 			}
 
+			if (retornaAtributo(rd11) == 2) {
+				printf("\nDIRETORIO:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+				
+			}
+			if (retornaAtributo(rd11) == 3) {
+				printf("\nLFN:  ");
+				for( int j=0; j<8; j++){
+					if(rd.nomeEntrada[j] !=0x20){
+						printf("%c",rd.nomeEntrada[j]);
+					}	
+				}	
+			}
+
+
+
+
 		}
-
-		inicialRd0 += 32;
-		inicialRd11 += 32;
-
+		
+		
+		inicioAtributo += 32;
+		inicioRoot +=32;
+		inicioCluster +=32;
 	}
 
+	printf("\n\n\n");
 
-
-
-	// 
-	/*
-	printf("Infos BOOR RECORD:\n");
+	//
+	 /*
+	printf("Infos BOOT RECORD:\n");
 	printf(" Bytes por setor: %hd \n", boot_record.bytes_per_sector);
     printf(" Setores por cluster: %x \n", boot_record.sectors_per_cluster);
 	printf(" Numero setores reservados: %d \n", boot_record.reserved_sector_count); //BR 11 0x0B
@@ -233,7 +359,7 @@ int main()
 	printf(" Data, Setor: %d \n", data_start_sector); //SETOR INICIA Root Dir 
 	printf(" Data, Byte: %d \n", data_start_byte); //BYTE INICIA Root Dir 
 	//
-	 */
+	*/
 
 	//printf("\n");
     return 0;

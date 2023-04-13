@@ -49,15 +49,15 @@ int arqExiste (short num1) {
 }
 
 
-int statusCluster (int num1) {
+int statusCluster (unsigned short num1) {
 
-	if (num1 = 0x0000) { //0x0000 	Cluster livre
+	if (num1 == 0x0000) { //0x0000 	Cluster livre
 		return 1;
 	}
-	if (num1 = (0x001 || 0x002 )) { //0x001 e 0x002 	Valores não utilizados e não permitidos
+	if (num1 == (0x001 || 0x002 )) { //0x001 e 0x002 	Valores não utilizados e não permitidos
 		return 2;
 	}
-	if (num1 = 0xFFF7) { //0xFFF7 	Cluster danificado
+	if (num1 == 0xFFF7) { //0xFFF7 	Cluster danificado
 		return 3;
 	}
 	if ((num1 >= 0x0003) && (num1 <= 0xFFEF)) { //0x0003 a 0xFFEF 	O cluster faz parte de um ficheiro; o valor é o endereço do cluster seguinte
@@ -66,7 +66,7 @@ int statusCluster (int num1) {
 	if ((num1 >= 0xFFF0) && (num1 <= 0xFFF6)) { //0xFFF0 a 0xFFF6 	Cluster reservado
 		return 5;
 	}
-	if ((num1 >= 0xFFF8) && (num1 <= 0xFFFF)) { //0xFFF8 a 0xFFFF 	Último cluster de um ficheiro
+	if ((num1 >= 0xfff8) && (num1 <= 0xffff)) { //0xFFF8 a 0xFFFF 	Último cluster de um ficheiro
 		return 6;
 	}
 
@@ -212,15 +212,85 @@ int main()
 				printf("  \n  | \n   ---- CLUSTER INICIAL: %hx -- PRIMEIRO SETOR: %d -- BYTE INICIAL %d", 
 				rd.enderecoClusterInicial, first_sector_of_cluster, first_byte_of_cluster);	
 
+				int sizefile;
+
 				
+
+
+				//fseek(fp, root_dir_start_byte+inicioRoot+28, SEEK_SET);
+				//fread(&sizefile, sizeof(int), 4, fp);
+
+				//print("%d\n", sizefile);
+
+
 				
 				
 				printf("  \n  | \n   ---- CONTEUDO: ");
+
+				unsigned short clusterFat;
+				int flag = 0;
+				
+				unsigned short nextCluster=rd.enderecoClusterInicial;
+				
+				
+				while (flag==0) {
+					
+					
+					for (int l = 0; l < boot_record.bytes_per_sector; l++)
+					{
+						unsigned char caracter;
+
+						
+
+						fseek(fp, first_byte_of_cluster+l, SEEK_SET);
+						fread(&caracter, sizeof(unsigned char), 1, fp);
+						
+						
+						printf("%c", caracter);
+						
+
+					}
+					
+
+					
+
+					//LER O PROXIMO CLUSTER
+					fseek(fp, fat1_start_byte+(2*nextCluster), SEEK_SET); 
+					fread(&nextCluster, sizeof(unsigned short), 1, fp);
+					
+					
+
+					//Atualiza FisrtByte (no if?)
+					int next_sector_of_cluster = ((nextCluster - 2) * boot_record.sectors_per_cluster) + data_start_sector;
+					first_byte_of_cluster  = next_sector_of_cluster * boot_record.bytes_per_sector;
+					
+					
+					//CONTINUA OU PARA
+					if (statusCluster(nextCluster)==6) {
+						flag = 1;
+						//printf("Entrou");
+					}
+
+					//PRINTAR NEXT CLUSTER NO CASO 6
+					//printf(" %x ", nextCluster);
+					//printf(" STATUS %d ", statusCluster(nextCluster));
+
+
+
+				} 
+
+				printf("\n");
+
+
+
+		
+				
 
 
 
 
 			}
+
 			if (retornaAtributo(rd11) == 2) {
 				printf("\nDIRETORIO:  ");
 				for( int j=0; j<8; j++){
@@ -250,11 +320,10 @@ int main()
 		inicioCluster +=32;
 	}
 
-	printf("\n");
+	printf("\n\n\n");
 
-	// 
-	/*
-	printf("Infos BOOR RECORD:\n");
+	///*
+	printf("Infos BOOT RECORD:\n");
 	printf(" Bytes por setor: %hd \n", boot_record.bytes_per_sector);
     printf(" Setores por cluster: %x \n", boot_record.sectors_per_cluster);
 	printf(" Numero setores reservados: %d \n", boot_record.reserved_sector_count); //BR 11 0x0B
@@ -284,8 +353,7 @@ int main()
 	printf("\nInfos DATA:\n");
 	printf(" Data, Setor: %d \n", data_start_sector); //SETOR INICIA Root Dir 
 	printf(" Data, Byte: %d \n", data_start_byte); //BYTE INICIA Root Dir 
-	//
-	 */
+	//*/
 
 	//printf("\n");
     return 0;
